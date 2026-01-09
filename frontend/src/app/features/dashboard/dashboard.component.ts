@@ -78,6 +78,10 @@ import { ProductService } from '../inventory/services/product.service';
           <mat-icon>show_chart</mat-icon>
           View Forecasts
         </button>
+        <button mat-raised-button color="warn" (click)="goToTransactions()">
+          <mat-icon>swap_horiz</mat-icon>
+          Import/Export
+        </button>
       </div>
     </div>
   `,
@@ -167,6 +171,10 @@ export class DashboardComponent implements OnInit {
 
   goToForecasting(): void {
     this.router.navigate(['/forecasting']);
+  }
+
+  goToTransactions(): void {
+    this.router.navigate(['/inventory-transaction']);
   }
 
   logout(): void {

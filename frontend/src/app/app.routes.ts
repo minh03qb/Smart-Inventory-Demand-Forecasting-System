@@ -17,6 +17,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'inventory-transaction',
+    loadChildren: () => import('./features/inventory-transaction/inventory-transaction.module').then(m => m.InventoryTransactionModule),
+    canActivate: [authGuard]
+  },
+  {
     path: 'forecasting',
     loadChildren: () => import('./features/forecasting/forecasting.routes').then(m => m.FORECASTING_ROUTES),
     canActivate: [authGuard]
