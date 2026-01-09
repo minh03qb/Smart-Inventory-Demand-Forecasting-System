@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,6 +11,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ForecastService } from '../services/forecast.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ProductService } from '../../inventory/services/product.service';
+import { InventoryTransactionService } from '../../inventory-transaction/services/inventory-transaction.service';
+import { ProductDTO } from '../../../shared/models/product.model';
+import { InventoryTransaction } from '../../inventory-transaction/models/inventory-transaction.model';
 
 @Component({
   selector: 'app-forecast-view',
@@ -41,20 +45,23 @@ import { AuthService } from '../../../core/auth/auth.service';
 
       <mat-card>
         <mat-card-header>
-          <mat-card-title>Generate Forecast</mat-card-title>
+          <mat-card-title>Create Forecast</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="forecastForm" (ngSubmit)="onSubmit()">
             <mat-form-field class="full-width">
-              <mat-label>Product ID</mat-label>
-              <input matInput formControlName="productId" required>
+              <mat-label>Select Product</mat-label>
+              <mat-select formControlName="productId" required>
+                <mat-option *ngFor="let product of products" [value]="product.id">
+                  {{ product.name }} (Stock: {{ product.currentStock }})
+                </mat-option>
+              </mat-select>
             </mat-form-field>
 
             <mat-form-field class="full-width">
-              <mat-label>Sales History (comma-separated)</mat-label>
-              <input matInput formControlName="salesHistory" 
-                     placeholder="e.g., 100,120,130,90,110,115,105" required>
-              <mat-hint>Enter past sales quantities separated by commas</mat-hint>
+              <mat-label>Sales History (Auto)</mat-label>
+              <input matInput [value]="salesHistoryDisplay" disabled>
+              <mat-hint>Automatically loaded from export history</mat-hint>
             </mat-form-field>
 
             <mat-form-field class="full-width">
@@ -73,11 +80,11 @@ import { AuthService } from '../../../core/auth/auth.service';
           </form>
 
           <div *ngIf="forecastResult" class="result-section">
-            <h2>Forecast Result</h2>
+            <h2>Forecast Results</h2>
             <mat-card class="result-card">
               <mat-card-content>
                 <div class="result-item">
-                  <strong>Product ID:</strong> {{ forecastResult.productId }}
+                  <strong>Product:</strong> {{ getProductName(forecastResult.productId) }}
                 </div>
                 <div class="result-item">
                   <strong>Algorithm:</strong> {{ forecastResult.algorithm }}
@@ -146,23 +153,45 @@ import { AuthService } from '../../../core/auth/auth.service';
     }
   `]
 })
-export class ForecastViewComponent {
+export class ForecastViewComponent implements OnInit {
   forecastForm: FormGroup;
   loading = false;
   error = '';
   forecastResult: any = null;
+  products: ProductDTO[] = [];
+  transactions: InventoryTransaction[] = [];
 
   constructor(
     private fb: FormBuilder,
     private forecastService: ForecastService,
+    private productService: ProductService,
+    private transactionService: InventoryTransactionService,
     private authService: AuthService,
     private router: Router
   ) {
     this.forecastForm = this.fb.group({
       productId: ['', Validators.required],
-      salesHistory: ['', Validators.required],
-      algorithm: ['MOVING_AVERAGE', Validators.required]
+      algorithm: ['MOVING_AVERAGE', Validators.required],
+      salesHistory: [[]]
     });
+  }
+
+  ngOnInit(): void {
+    this.productService.getAllProducts().subscribe(products => this.products = products);
+    this.transactionService.getAll().subscribe(trans => this.transactions = trans);
+    this.forecastForm.get('productId')?.valueChanges.subscribe(productId => {
+      this.setSalesHistoryFromTransactions(productId);
+    });
+  }
+
+  setSalesHistoryFromTransactions(productId: string) {
+    // Get EXPORT transactions for this product, sorted by time ascending
+    const sales = this.transactions
+      .filter(t => t.productId === productId && t.type === 'EXPORT')
+      .sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''))
+      .map(t => t.quantity);
+    // Lưu vào biến để gửi lên backend khi submit
+    this.forecastForm.patchValue({ salesHistory: sales }, { emitEvent: false });
   }
 
   onSubmit(): void {
@@ -172,10 +201,7 @@ export class ForecastViewComponent {
       this.forecastResult = null;
 
       const formValue = this.forecastForm.value;
-      const salesHistory = formValue.salesHistory
-        .split(',')
-        .map((s: string) => parseInt(s.trim(), 10))
-        .filter((n: number) => !isNaN(n));
+      const salesHistory: number[] = formValue.salesHistory || [];
 
       const request = {
         productId: formValue.productId,
@@ -203,5 +229,15 @@ export class ForecastViewComponent {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/auth/login']);
+  }
+
+  get salesHistoryDisplay(): string {
+    const sales: number[] = this.forecastForm.get('salesHistory')?.value || [];
+    return sales.length ? sales.join(', ') : '';
+  }
+
+  getProductName(productId: string): string {
+    const product = this.products.find(p => p.id === productId);
+    return product ? product.name : productId;
   }
 }
