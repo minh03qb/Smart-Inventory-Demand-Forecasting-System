@@ -34,11 +34,20 @@ public class JwtUtil {
 
     @SuppressWarnings("unchecked")
     public Set<String> getRoles(String token) {
-        return (Set<String>) Jwts.parser()
+        Object rolesObj = Jwts.parser()
                 .setSigningKey(jwtSecret)
                 .parseClaimsJws(token)
                 .getBody()
                 .get("roles");
+        if (rolesObj instanceof java.util.List) {
+            java.util.List<?> rolesList = (java.util.List<?>) rolesObj;
+            java.util.Set<String> roles = new java.util.HashSet<>();
+            for (Object role : rolesList) {
+                roles.add(String.valueOf(role));
+            }
+            return roles;
+        }
+        return new java.util.HashSet<>();
     }
 
     public boolean validateToken(String token) {
