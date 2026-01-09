@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: smart-inventory
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/smartinventory
+      database: smartinventory
+
+jwt:
+  secret: mySecretKey123456789012345678901234567890
+  expiration: 86400000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.smartinventory: DEBUG
+    org.springframework.security: DEBUG
