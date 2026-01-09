@@ -74,7 +74,7 @@ import { ProductService } from '../inventory/services/product.service';
           <mat-icon>inventory</mat-icon>
           Manage Inventory
         </button>
-        <button mat-raised-button color="accent" (click)="goToForecasting()">
+        <button *ngIf="isAdmin()" mat-raised-button color="accent" (click)="goToForecasting()">
           <mat-icon>show_chart</mat-icon>
           View Forecasts
         </button>
@@ -180,5 +180,9 @@ export class DashboardComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/auth/login']);
+  }
+
+  isAdmin(): boolean {
+    return this.authService.hasRole('ADMIN');
   }
 }

@@ -53,13 +53,19 @@ export class InventoryTransactionFormComponent implements OnInit {
     this.form = this.fb.group({
       productId: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(1)]],
-      type: ['IMPORT', Validators.required],
+      type: ['EXPORT', Validators.required],
       note: ['']
     });
   }
 
   ngOnInit(): void {
     this.loadProducts();
+    // If STAFF, restrict to EXPORT only and disable type field
+    if (!this.isAdmin()) {
+      this.form.patchValue({ type: 'EXPORT' });
+      this.form.get('type')?.disable();
+      this.types = [{ value: 'EXPORT', label: 'Export' }];
+    }
   }
 
   loadProducts(): void {
@@ -79,7 +85,9 @@ export class InventoryTransactionFormComponent implements OnInit {
     if (this.form.invalid) return;
     this.submitting = true;
     this.errorMessage = '';
-    this.transactionService.create(this.form.value).subscribe({
+    // Include disabled field value for STAFF users
+    const formValue = this.form.getRawValue();
+    this.transactionService.create(formValue).subscribe({
       next: () => {
         this.submitting = false;
         this.router.navigate(['/inventory-transaction']);
@@ -103,5 +111,9 @@ export class InventoryTransactionFormComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/auth/login']);
+  }
+
+  isAdmin(): boolean {
+    return this.authService.hasRole('ADMIN');
   }
 }

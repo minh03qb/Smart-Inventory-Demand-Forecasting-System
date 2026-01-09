@@ -41,6 +41,7 @@
               {{ t.label }}
             </mat-option>
           </mat-select>
+          <mat-hint *ngIf="!isAdmin()">STAFF can only create EXPORT transactions</mat-hint>
         </mat-form-field>
 
         <mat-form-field appearance="fill" class="full-width">

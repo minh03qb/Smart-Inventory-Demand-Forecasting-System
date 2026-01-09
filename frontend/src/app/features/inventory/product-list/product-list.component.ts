@@ -48,7 +48,7 @@ import { ProductFormDialogComponent } from './product-form-dialog.component';
       <div class="header-actions">
         <h1>Products</h1>
         <div>
-          <button mat-raised-button color="accent" (click)="openCreateDialog()" style="margin-right: 10px;">
+          <button *ngIf="isAdmin()" mat-raised-button color="accent" (click)="openCreateDialog()" style="margin-right: 10px;">
             <mat-icon>add</mat-icon>
             Add Product
           </button>
@@ -96,12 +96,13 @@ import { ProductFormDialogComponent } from './product-form-dialog.component';
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let product">
-                <button mat-icon-button color="primary" (click)="openEditDialog(product)" matTooltip="Edit">
+                <button *ngIf="isAdmin()" mat-icon-button color="primary" (click)="openEditDialog(product)" matTooltip="Edit">
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button color="warn" (click)="deleteProduct(product)" matTooltip="Delete">
+                <button *ngIf="isAdmin()" mat-icon-button color="warn" (click)="deleteProduct(product)" matTooltip="Delete">
                   <mat-icon>delete</mat-icon>
                 </button>
+                <span *ngIf="!isAdmin()">View only</span>
               </td>
             </ng-container>
 
@@ -265,5 +266,9 @@ export class ProductListComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/auth/login']);
+  }
+
+  isAdmin(): boolean {
+    return this.authService.hasRole('ADMIN');
   }
 }
